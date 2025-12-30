@@ -1,0 +1,43 @@
+name: Auto Merge Pre-Production to Main
+
+# Este evento define cuándo se activa el pipeline
+on:
+  push:
+    branches:
+      - pre-production  # Se activa SOLO al hacer push en esta rama
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # IMPORTANTE: Da permiso al bot para escribir en el repo
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Descarga todo el historial de ramas
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git Bot
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge changes to Main
+        run: |
+          # Traemos la información más reciente de las ramas
+          git fetch origin main
+          
+          # Nos cambiamos a la rama main
+          git checkout main
+          
+          # Fusionamos lo que hay en pre-production hacia main
+          # --no-ff crea un commit de merge explícito para que se vea en el historial
+          git merge --no-ff origin/pre-production -m "Auto-merge: Cambios aprobados desde Pre-Production"
+          
+          # Subimos los cambios a main
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
